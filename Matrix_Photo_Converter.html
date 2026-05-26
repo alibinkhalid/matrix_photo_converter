@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Matrix Photo Converter</title>
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #000;
+        color: #00ff41;
+    }
+
+    .app {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 20px;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .panel {
+        background: #0a0a0a;
+        border: 1px solid #222;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
+
+    .panel h1,
+    .panel h2 {
+        margin-top: 0;
+        color: #00ff41;
+    }
+
+    .panel p {
+        color: #9ca39c;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .control-group {
+        margin-bottom: 16px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: #d8ffd8;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    input[type="color"],
+    select,
+    button {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #2a2a2a;
+        background: #111;
+        color: #eaffea;
+        font-size: 14px;
+    }
+
+    input[type="range"] {
+        width: 100%;
+    }
+
+    .range-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+
+    .range-value {
+        font-size: 13px;
+        color: #b5c9b5;
+        min-width: 60px;
+        text-align: right;
+    }
+
+    .button-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    button {
+        cursor: pointer;
+        background: #00ff41;
+        color: #000;
+        font-weight: bold;
+        transition: 0.2s ease;
+    }
+
+    button:hover {
+        background: #33ff66;
+    }
+
+    button.secondary {
+        background: #111;
+        color: #fff;
+        border: 1px solid #333;
+    }
+
+    button.secondary:hover {
+        background: #1b1b1b;
+    }
+
+    .preview-panel {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .preview-box {
+        flex: 1;
+        min-height: 70vh;
+        background: #000;
+        border: 1px solid #222;
+        border-radius: 20px;
+        padding: 14px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+    }
+
+    canvas {
+        max-width: 100%;
+        height: auto;
+        background: #000;
+        border-radius: 16px;
+    }
+
+    .status {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 14px;
+        background: #101010;
+        border: 1px solid #222;
+        color: #cde8cd;
+        font-size: 14px;
+    }
+
+    .checker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .checker input[type="checkbox"] {
+        width: auto;
+        transform: scale(1.2);
+    }
+
+    @media (max-width: 980px) {
+        .app {
+            grid-template-columns: 1fr;
+        }
+
+        .preview-box {
+            min-height: 420px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="app">
+    <div class="panel">
+        <h1>Matrix Photo Converter</h1>
+        <p>Upload a photo and convert it into Matrix-style text art using bright green characters on a black background.</p>
+
+        <div class="control-group">
+            <label for="fileInput">Photo input</label>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="control-group">
+            <label for="presetSelect">Preset</label>
+            <select id="presetSelect">
+                <option value="01アイウエオカキクケコABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*">Classic Matrix</option>
+                <option value="ALIBINKHALID">Name Rain</option>
+                <option value="@#W$9876543210?!;:+=-,. ">Dense</option>
+                <option value="█▓▒░ .">Minimal</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="charSet">Character set</label>
+            <input type="text" id="charSet" value="01アイウエオカキクケコABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="cellSize">Cell size</label>
+                <span class="range-value" id="cellSizeValue">10</span>
+            </div>
+            <input type="range" id="cellSize" min="6" max="24" step="1" value="10">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="contrast">Contrast</label>
+                <span class="range-value" id="contrastValue">1.15</span>
+            </div>
+            <input type="range" id="contrast" min="0.60" max="2.20" step="0.05" value="1.15">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="brightness">Brightness</label>
+                <span class="range-value" id="brightnessValue">0.00</span>
+            </div>
+            <input type="range" id="brightness" min="-0.40" max="0.40" step="0.01" value="0">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="gamma">Gamma</label>
+                <span class="range-value" id="gammaValue">1.00</span>
+            </div>
+            <input type="range" id="gamma" min="0.50" max="2.50" step="0.05" value="1.00">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="glow">Glow</label>
+                <span class="range-value" id="glowValue">6</span>
+            </div>
+            <input type="range" id="glow" min="0" max="18" step="1" value="6">
+        </div>
+
+        <div class="control-group">
+            <div class="range-row">
+                <label for="scalePercent">Scale %</label>
+                <span class="range-value" id="scaleValue">100</span>
+            </div>
+            <input type="range" id="scalePercent" min="30" max="160" step="5" value="100">
+        </div>
+
+        <div class="control-group">
+            <label for="greenColor">Green colour</label>
+            <input type="color" id="greenColor" value="#00ff41">
+        </div>
+
+        <div class="control-group checker">
+            <input type="checkbox" id="invert">
+            <label for="invert" style="margin:0;">Invert mapping</label>
+        </div>
+
+        <div class="button-row">
+            <button id="renderBtn">Render</button>
+            <button id="resetBtn" class="secondary">Reset</button>
+        </div>
+
+        <div style="margin-top:10px;">
+            <button id="downloadBtn" class="secondary">Download PNG</button>
+        </div>
+
+        <div class="status" id="status">
+            Upload an image to convert it into Matrix-style text art.
+        </div>
+    </div>
+
+    <div class="panel preview-panel">
+        <h2>Preview</h2>
+        <p>The output is rendered directly onto a canvas so you can save it as a PNG.</p>
+        <div class="preview-box">
+            <canvas id="previewCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<canvas id="sourceCanvas" style="display:none;"></canvas>
+
+<script>
+(function () {
+    const DEFAULT_CHARS = "01アイウエオカキクケコABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*";
+
+    const fileInput = document.getElementById("fileInput");
+    const presetSelect = document.getElementById("presetSelect");
+    const charSetInput = document.getElementById("charSet");
+    const cellSizeInput = document.getElementById("cellSize");
+    const contrastInput = document.getElementById("contrast");
+    const brightnessInput = document.getElementById("brightness");
+    const gammaInput = document.getElementById("gamma");
+    const glowInput = document.getElementById("glow");
+    const scaleInput = document.getElementById("scalePercent");
+    const greenColorInput = document.getElementById("greenColor");
+    const invertInput = document.getElementById("invert");
+
+    const cellSizeValue = document.getElementById("cellSizeValue");
+    const contrastValue = document.getElementById("contrastValue");
+    const brightnessValue = document.getElementById("brightnessValue");
+    const gammaValue = document.getElementById("gammaValue");
+    const glowValue = document.getElementById("glowValue");
+    const scaleValue = document.getElementById("scaleValue");
+
+    const renderBtn = document.getElementById("renderBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const status = document.getElementById("status");
+
+    const previewCanvas = document.getElementById("previewCanvas");
+    const sourceCanvas = document.getElementById("sourceCanvas");
+
+    const previewCtx = previewCanvas.getContext("2d");
+    const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+
+    let loadedImage = null;
+    let loadedImageName = "";
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function luminance(r, g, b) {
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    function updateValueLabels() {
+        cellSizeValue.textContent = cellSizeInput.value;
+        contrastValue.textContent = parseFloat(contrastInput.value).toFixed(2);
+        brightnessValue.textContent = parseFloat(brightnessInput.value).toFixed(2);
+        gammaValue.textContent = parseFloat(gammaInput.value).toFixed(2);
+        glowValue.textContent = glowInput.value;
+        scaleValue.textContent = scaleInput.value;
+    }
+
+    function resetControls() {
+        charSetInput.value = DEFAULT_CHARS;
+        presetSelect.value = DEFAULT_CHARS;
+        cellSizeInput.value = 10;
+        contrastInput.value = 1.15;
+        brightnessInput.value = 0;
+        gammaInput.value = 1.0;
+        glowInput.value = 6;
+        scaleInput.value = 100;
+        greenColorInput.value = "#00ff41";
+        invertInput.checked = false;
+        updateValueLabels();
+
+        if (loadedImage) {
+            renderMatrix();
+        } else {
+            status.textContent = "Controls reset. Upload an image to start.";
+            clearPreview();
+        }
+    }
+
+    function clearPreview() {
+        previewCanvas.width = 800;
+        previewCanvas.height = 500;
+        previewCtx.fillStyle = "#000";
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+        previewCtx.fillStyle = "#00ff41";
+        previewCtx.font = "20px monospace";
+        previewCtx.textAlign = "center";
+        previewCtx.textBaseline = "middle";
+        previewCtx.fillText("Upload a photo to generate Matrix-style text art", previewCanvas.width / 2, previewCanvas.height / 2 - 15);
+
+        previewCtx.fillStyle = "#889988";
+        previewCtx.font = "14px monospace";
+        previewCtx.fillText("Tip: portraits and high-contrast images work best", previewCanvas.width / 2, previewCanvas.height / 2 + 20);
+    }
+
+    function getCleanedChars() {
+        const raw = (charSetInput.value || "").replace(/\n/g, "");
+        return raw.length ? [...raw] : [...DEFAULT_CHARS];
+    }
+
+    function renderMatrix() {
+        if (!loadedImage) {
+            status.textContent = "Please upload an image first.";
+            return;
+        }
+
+        const scale = clamp(parseInt(scaleInput.value, 10) / 100, 0.1, 3);
+        const width = Math.max(1, Math.floor(loadedImage.width * scale));
+        const height = Math.max(1, Math.floor(loadedImage.height * scale));
+
+        sourceCanvas.width = width;
+        sourceCanvas.height = height;
+        sourceCtx.clearRect(0, 0, width, height);
+        sourceCtx.drawImage(loadedImage, 0, 0, width, height);
+
+        previewCanvas.width = width;
+        previewCanvas.height = height;
+
+        previewCtx.save();
+        previewCtx.clearRect(0, 0, width, height);
+        previewCtx.fillStyle = "#000000";
+        previewCtx.fillRect(0, 0, width, height);
+
+        const chars = getCleanedChars();
+        const lastIndex = Math.max(0, chars.length - 1);
+
+        const cellSize = parseInt(cellSizeInput.value, 10);
+        const contrast = parseFloat(contrastInput.value);
+        const brightness = parseFloat(brightnessInput.value);
+        const gamma = parseFloat(gammaInput.value);
+        const glow = parseInt(glowInput.value, 10);
+        const greenColor = greenColorInput.value;
+        const invert = invertInput.checked;
+
+        previewCtx.textBaseline = "top";
+        previewCtx.font = cellSize + "px monospace";
+        previewCtx.fillStyle = greenColor;
+        previewCtx.shadowColor = greenColor;
+        previewCtx.shadowBlur = glow;
+
+        const imageData = sourceCtx.getImageData(0, 0, width, height).data;
+        const step = Math.max(4, Math.floor(cellSize));
+
+        for (let y = 0; y < height; y += step) {
+            for (let x = 0; x < width; x += step) {
+                const index = (y * width + x) * 4;
+                const alpha = imageData[index + 3] / 255;
+
+                if (alpha < 0.05) continue;
+
+                let lum = luminance(
+                    imageData[index],
+                    imageData[index + 1],
+                    imageData[index + 2]
+                ) / 255;
+
+                lum = Math.pow(lum, gamma);
+                lum = ((lum - 0.5) * contrast) + 0.5 + brightness;
+                lum = clamp(lum, 0, 1);
+
+                if (invert) lum = 1 - lum;
+
+                const charIndex = Math.round(lum * lastIndex);
+                const ch = chars[charIndex] || chars[lastIndex] || "0";
+
+                previewCtx.fillText(ch, x, y);
+            }
+        }
+
+        previewCtx.restore();
+
+        status.textContent =
+            "Rendered " + width + " × " + height +
+            " Matrix text art using " + chars.length + " characters.";
+    }
+
+    function loadImageFromFile(file) {
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            status.textContent = "Please choose an image file (PNG, JPG, WEBP, etc.).";
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                loadedImage = img;
+                loadedImageName = file.name;
+                status.textContent = "Loaded " + file.name + ". Rendering Matrix text art...";
+                renderMatrix();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function downloadPNG() {
+        if (!loadedImage) {
+            status.textContent = "Nothing to download yet. Upload and render an image first.";
+            return;
+        }
+
+        const link = document.createElement("a");
+        const baseName = loadedImageName ? loadedImageName.replace(/\.[^.]+$/, "") : "matrix-text-art";
+        link.download = baseName + "-matrix.png";
+        link.href = previewCanvas.toDataURL("image/png");
+        link.click();
+    }
+
+    // Events
+    fileInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        loadImageFromFile(file);
+    });
+
+    presetSelect.addEventListener("change", function () {
+        charSetInput.value = presetSelect.value;
+        if (loadedImage) renderMatrix();
+    });
+
+    [
+        cellSizeInput,
+        contrastInput,
+        brightnessInput,
+        gammaInput,
+        glowInput,
+        scaleInput,
+        greenColorInput,
+        invertInput
+    ].forEach(input => {
+        input.addEventListener("input", function () {
+            updateValueLabels();
+            if (loadedImage) renderMatrix();
+        });
+        input.addEventListener("change", function () {
+            updateValueLabels();
+            if (loadedImage) renderMatrix();
+        });
+    });
+
+    charSetInput.addEventListener("input", function () {
+        if (loadedImage) renderMatrix();
+    });
+
+    renderBtn.addEventListener("click", renderMatrix);
+    resetBtn.addEventListener("click", resetControls);
+    downloadBtn.addEventListener("click", downloadPNG);
+
+    // Initialise
+    updateValueLabels();
+    clearPreview();
+})();
+</script>
+
+</body>
+</html>
